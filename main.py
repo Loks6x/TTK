@@ -129,4 +129,12 @@ async def send_now():
     await send_order_to_tg()
     return {"status": "success"}
 
+# === ОТДАЧА ФРОНТЕНДА (HTML) ===
+@app.get("/")
+async def serve_frontend():
+    # Проверяем, есть ли файл index.html в папке
+    if os.path.exists("index.html"):
+        return FileResponse("index.html")
+    return {"error": "Файл index.html не найден рядом с main.py!"}
+
 # Для локального запуска: uvicorn main:app --host 0.0.0.0 --port 8000
