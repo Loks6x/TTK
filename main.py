@@ -13,13 +13,14 @@ from aiogram import Bot
 from aiogram.enums import ParseMode
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-# Настройка логов, чтобы видеть ошибки в терминале
+# Логирование
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # === КОНФИГУРАЦИЯ ===
+# Убедись, что этот ID правильный! Попробуй перепроверить его через @getmyid_bot в группе.
 BOT_TOKEN = "8982256451:AAFge6oA28B_khpKBAhYrQC6NbzQRFhusMk"
-CHAT_ID = -1005307316313  # Сделали числом для надежности
+CHAT_ID = -1005307316313 
 
 bot = Bot(token=BOT_TOKEN)
 scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
@@ -39,13 +40,12 @@ CREATE TABLE IF NOT EXISTS active_order (
 """)
 conn.commit()
 
-# === ЛОГИКА ОТПРАВКИ ===
 async def send_order_to_tg():
     cursor.execute("SELECT id, item_name, quantity, comment, author_name FROM active_order ORDER BY timestamp ASC")
     rows = cursor.fetchall()
     
     if not rows:
-        logger.info("Заявок нет, отправка отменена.")
+        logger.info("Заявок нет, база пуста.")
         return
     
     authors = set()
@@ -53,42 +53,41 @@ async def send_order_to_tg():
     
     for row in rows:
         _, item_name, quantity, comment, author_name = row
-        # Экранируем спецсимволы, чтобы HTML не ломался
-        safe_item = html.escape(item_name)
-        safe_qty = html.escape(quantity)
-        safe_author = html.escape(author_name)
+        # Экранируем текст, чтобы не было ошибок HTML
+        safe_item = html.escape(str(item_name))
+        safe_qty = html.escape(str(quantity))
+        safe_comment = html.escape(str(comment)) if comment else ""
+        safe_author = html.escape(str(author_name))
+        
         authors.add(safe_author)
         
-        comment_text = f" (<i>{html.escape(comment)}</i>)" if comment else ""
-        items_text += f"• <b>{safe_item}</b> — {safe_qty}{comment_text} — [от {safe_author}]\n"
-        
-    authors_joined = ", ".join(authors)
+        c_text = f" (<i>{safe_comment}</i>)" if safe_comment else ""
+        items_text += f"• <b>{safe_item}</b> — {safe_qty}{c_text} [от {safe_author}]\n"
     
     message = (
-        f"📦 <b>ОБЩАЯ ЗАЯВКА</b>\n\n"
+        f"📦 <b>НОВАЯ ЗАЯВКА</b>\n\n"
         f"{items_text}\n"
-        f"👤 <b>Кто составил:</b> {authors_joined}\n"
-        f"_________________________\n"
-        f"🤖 <i>Сформировано автоматически</i>"
+        f"👤 <b>Составили:</b> {', '.join(authors)}\n"
     )
     
     try:
-        # Используем ParseMode.HTML — это стабильнее всего
         await bot.send_message(chat_id=CHAT_ID, text=message, parse_mode=ParseMode.HTML)
         
-        # Очищаем базу ТОЛЬКО после успешной отправки
+        # ЕСЛИ ОТПРАВКА ПРОШЛА УСПЕШНО — ЧИСТИМ БАЗУ
         cursor.execute("DELETE FROM active_order")
         conn.commit()
-        logger.info("Заявка успешно отправлена и база очищена.")
+        logger.info("Заявка отправлена, база очищена.")
+        
     except Exception as e:
-        logger.error(f"Ошибка при отправке в Telegram: {e}")
+        logger.error(f"ОШИБКА TELEGRAM: {e}")
+        logger.error(f"Проверь: 1. Бот в группе? 2. Бот админ? 3. CHAT_ID {CHAT_ID} верный?")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Планировщик: в 8 утра и в 8 вечера
-    scheduler.add_job(send_order_to_tg, 'cron', hour=8, minute=0)
-    scheduler.add_job(send_order_to_tg, 'cron', hour=20, minute=0)
-    scheduler.start()
+    if not scheduler.running:
+        scheduler.add_job(send_order_to_tg, 'cron', hour=8, minute=0)
+        scheduler.add_job(send_order_to_tg, 'cron', hour=20, minute=0)
+        scheduler.start()
     yield
     scheduler.shutdown()
     await bot.session.close()
@@ -109,7 +108,6 @@ class OrderItem(BaseModel):
     comment: str = ""
     author_name: str
 
-# === API ЭНДПОИНТЫ ===
 @app.get("/api/get_orders")
 async def get_orders():
     cursor.execute("SELECT id, item_name, quantity, comment, author_name FROM active_order ORDER BY timestamp DESC")
@@ -138,6 +136,4 @@ async def send_now():
 
 @app.get("/")
 async def serve_frontend():
-    if os.path.exists("index.html"):
-        return FileResponse("index.html")
-    return {"error": "index.html not found"}
+    return FileResponse("index.html")
