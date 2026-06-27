@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 # === КОНФИГУРАЦИЯ ===
 BOT_TOKEN = "8982256451:AAFge6oA28B_khpKBAhYrQC6NbzQRFhusMk"
-CHAT_ID = -1004420801156  # Если "Chat not found", проверь ID через @getmyid_bot в группе!
+CHAT_ID = -1005307316313  
 
 bot = Bot(token=BOT_TOKEN)
 scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
@@ -59,8 +59,10 @@ async def send_order_to_tg():
         name, qty, comm, auth = r
         authors.add(html.escape(auth))
         c_part = f" (<i>{html.escape(comm)}</i>)" if comm else ""
-        items_list.append(f"• <b>{html.escape(name)}</b> — {html.escape(qty)}{c_part} [от {html.escape(auth)}]")
+        # Убрали приписку [от Имя] возле каждой позиции
+        items_list.append(f"• <b>{html.escape(name)}</b> — {html.escape(qty)}{c_part}")
     
+    # Имена авторов теперь только в самом низу сообщения один раз
     message = "📦 <b>НОВАЯ ЗАЯВКА</b>\n\n" + "\n".join(items_list) + f"\n\n👤 <b>Кто составил:</b> {', '.join(authors)}"
     
     try:
@@ -77,7 +79,6 @@ async def send_order_to_tg():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Планировщик
     scheduler.add_job(send_order_to_tg, 'cron', hour=8, minute=0)
     scheduler.add_job(send_order_to_tg, 'cron', hour=20, minute=0)
     scheduler.start()
