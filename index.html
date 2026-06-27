@@ -83,10 +83,19 @@
 
         .tags { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
         .tag { background: rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 500; color: var(--text-sec); }
+        .tag.glass { background: rgba(10, 132, 255, 0.2); color: var(--accent); }
         
         .method { font-size: 15px; line-height: 1.5; color: var(--text-main); margin-bottom: 10px; }
         ul { margin: 0 0 16px 0; padding-left: 20px; color: var(--text-main); font-size: 15px; line-height: 1.6;}
         li { margin-bottom: 4px; }
+
+        /* Стили калькулятора ПФ */
+        .pf-calculator { display: flex; align-items: center; gap: 12px; background: rgba(48, 209, 88, 0.1); border: 1px solid rgba(48, 209, 88, 0.3); border-radius: 12px; padding: 12px; margin-bottom: 16px; }
+        .pf-calc-label { font-size: 14px; font-weight: 600; color: var(--accent-pf); }
+        .pf-calc-input { background: rgba(0,0,0,0.5); border: 1px solid var(--border-color); color: #fff; padding: 8px; border-radius: 8px; width: 80px; font-size: 16px; font-weight: bold; text-align: center; outline: none; transition: border 0.2s; }
+        .pf-calc-input:focus { border-color: var(--accent-pf); }
+        .pf-calc-unit { font-size: 14px; color: var(--text-sec); }
+        .ing-val { font-weight: bold; color: var(--accent-pf); transition: color 0.2s; }
 
         /* Стили чек-листа */
         #checklist-container { display: none; width: 100%; flex-direction: column; gap: 16px; }
@@ -193,18 +202,171 @@
         <div class="modal-content">
             <div class="modal-title">Вход (Раздел Заявки)</div>
             <input type="text" id="author-name-input" class="modal-input" placeholder="Ваше Имя (Бармен)">
-            <!-- ДОБАВЛЕНО ПОЛЕ ПАРОЛЯ -->
             <input type="password" id="author-password-input" class="modal-input" placeholder="Пароль">
             <button class="modal-btn" onclick="saveAuthorName()">Войти</button>
         </div>
     </div>
 
     <script>
-        // База данных меню (Замени на свои реальные коктейли и ПФ)
+        // === БАЗА ДАННЫХ (Оцифрована с таблиц) ===
         const ttkData = [
-            { id: 1, tab: 'drinks', category: 'cocktail', title: 'Апероль Шприц', method: 'Билд в винный бокал со льдом. Украсить долькой апельсина.', tags: ['Лед', 'Апельсин'], ingredients: ['Апероль - 40мл', 'Просекко - 80мл', 'Газировка - 20мл'] },
-            { id: 2, tab: 'drinks', category: 'lemonade', title: 'Лимонад Маракуйя', method: 'Шейк, перелить в хайбол.', tags: ['Лед', 'Лимон'], ingredients: ['Пюре Маракуйя - 30г', 'Сок лимона - 15мл', 'Сироп сахарный - 15мл', 'Содовая - 150мл'] },
-            { id: 3, tab: 'pf', category: 'pf', title: 'Сахарный сироп 1:1', method: 'Смешать сахар и горячую воду до растворения. Остудить.', tags: ['Заготовка', 'Хранить в холодильнике'], ingredients: ['Сахар - 1000г', 'Вода - 1000мл'] }
+            // --- КОКТЕЙЛИ ---
+            { id: 1, tab: 'drinks', category: 'cocktail', title: 'Апероль Спритз', method: 'Заливаем все в бокал для красного вина с кусковым льдом и перемешиваем, украшаем слайсом апельсина', tags: ['220 мл', 'Лед'], glass: 'Бокал для красного вина', ingredients: ['Ликер Aperol - 60 мл', 'Игристое Абрау Дюрсо - 100 мл', 'Содовая - 30 мл', 'Апельсин - 30 гр'] },
+            { id: 2, tab: 'drinks', category: 'cocktail', title: 'Беллини', method: 'Заливаем все в блендер, немного взбиваем, и переливаем в шале. Украшаем цветком', tags: ['200 мл'], glass: 'Креманка', ingredients: ['Пф Беллини - 80 мл', 'Игристое вино Шато Двуморье брют - 120 мл'] },
+            { id: 3, tab: 'drinks', category: 'cocktail', title: 'Негрони', method: 'Заливаем все ингридиенты в смес, стируем и переливаем в бокал олд фешн со льдом, украшаем цедрой апельсина.', tags: ['90 мл', 'Лед'], glass: 'Рокс', ingredients: ['Джин Bikens - 30 мл', 'Cinzano 1757 rosso - 30 мл', 'Campari - 30 мл'] },
+            { id: 4, tab: 'drinks', category: 'cocktail', title: 'Бэзил Смеш', method: 'Заливаем все в шейкер с кусковым льдом, подаем в олд фэшн со льдом и украшаем листом базилика.', tags: ['80 мл', 'Лед'], glass: 'Рокс', ingredients: ['Джин - 40 мл', 'Сахарный сироп - 20 мл', 'Пф лимонный фреш - 20 мл', 'Базилик свежий - 8 гр'] },
+            { id: 5, tab: 'drinks', category: 'cocktail', title: 'Татарский Олд Фэшн', method: 'Заливаем все в смес, стируем и переливаем в бокал олд фэшн. Украшение: Окуриваем бокал окуривателем и щепой.', tags: ['70 мл'], glass: 'Рокс', ingredients: ['Пф Бурбон/Курага - 70 мл'] },
+            { id: 6, tab: 'drinks', category: 'cocktail', title: 'Лимончелло Спритз', method: 'Заливаем все в бокал для красного вина с кусковым льдом и перемешиваем, украшаем листьями мяты и долькой лимона', tags: ['180 мл', 'Лед'], glass: 'Бокал для красного вина', ingredients: ['Пф Лимончелло - 60 мл', 'Игристое Абрау Дюрсо - 90 мл', 'Газированная вода - 30 мл'] },
+            { id: 7, tab: 'drinks', category: 'cocktail', title: 'Мартини-Эспрессо', method: 'Заливаем все в шейкер с кусковым льдом, подаем в креманку и украшаем зерновым кофе.', tags: ['115 мл', 'Лед'], glass: 'Креманка', ingredients: ['Водка Белуга Нобл - 40 мл', 'Эспрессо - 40 мл', 'Мари Бризар Кофе - 25 мл', 'Сахарный сироп - 10 мл'] },
+            { id: 8, tab: 'drinks', category: 'cocktail', title: 'Май-Тай', method: 'Заливаем все в шейкер с кусковым льдом, подаем в олд фэшн с колотым льдом и украшаем сушеным апельсином и пылью из каркаде.', tags: ['140 мл', 'Лед', 'Краш'], glass: 'Рокс', ingredients: ['Ром Барсело Бланко - 30 мл', 'Ром Такамака - 30 мл', 'Трипл Сек - 30 мл', 'Амаретто - 10 мл', 'Сахарный сироп - 10 мл', 'Фреш лайма - 30 мл'] },
+            { id: 9, tab: 'drinks', category: 'cocktail', title: 'Маргарита', method: 'Заливаем все в шейкер с кусковым льдом, подаем в креманку с каемкой из соли и долькой лайма', tags: ['90 мл', 'Лед'], glass: 'Креманка', ingredients: ['Текила Агавита - 40 мл', 'Трипл Сек - 20 мл', 'Сахарный Сироп - 10 мл', 'Фреш лайма - 20 мл'] },
+            { id: 10, tab: 'drinks', category: 'cocktail', title: 'Сарти Шпритц', method: 'Заливаем все в бокал для красного вина с кусковым льдом и перемешиваем, украшаем слайсом лайма', tags: ['180 мл', 'Лед'], glass: 'Бокал для красного вина', ingredients: ['Игристое Абрау Дюрсо - 90 мл', 'Ликер Сарти - 60 мл', 'Газированная вода - 30 мл'] },
+            { id: 11, tab: 'drinks', category: 'cocktail', title: 'Венецианский Шпритц', method: 'Заливаем все в бокал для красного вина с кусковым льдом и перемешиваем, украшаем слайсом грейпфрута', tags: ['190 мл', 'Лед'], glass: 'Бокал для красного вина', ingredients: ['Кампари - 60 мл', 'Игристое Абрау Дюрсо - 70 мл', 'Сок грейпфрута - 30 мл', 'Газированная вода - 30 мл'] },
+            { id: 12, tab: 'drinks', category: 'cocktail', title: 'Порн Стар Мартини', method: 'Заливаем все в шейкер с кусковым льдом (шейк+драй шейк) или мини блендер с фрапе, переливаем в шале и урашаем и отдельно подаем шот игристого 50 мл', tags: ['160 мл', 'Лед'], glass: 'Креманка', ingredients: ['Пф Маракуйя - 60 мл', 'Водка Lab ваниль и бобы тонка - 50 мл', 'Игристое Шато Двуморье брют - 50 мл'] },
+            
+            // --- ЛИМОНАДЫ ---
+            { id: 13, tab: 'drinks', category: 'lemonade', title: 'Малина с персиком', method: 'Заливаем все ингридиенты в хайбол с кусковым льдом, перемешиваем и украшаем цветком', tags: ['160 мл', 'Лед'], glass: 'Хайбол', ingredients: ['Пф Малина/Персик - 70 мл', 'Содовая - 90 мл'] },
+            { id: 14, tab: 'drinks', category: 'lemonade', title: 'Манго и маракуйя', method: 'Заливаем все ингридиенты в хайбол с кусковым льдом, перемешиваем и украшаем цветком', tags: ['160 мл', 'Лед'], glass: 'Хайбол', ingredients: ['Пф Тропики - 70 мл', 'Содовая - 90 мл'] },
+            
+            // --- СМУЗИ ---
+            { id: 15, tab: 'drinks', category: 'smoothie', title: 'Зеленый смузи', method: 'Закидываем все в блендер и переливаем в хайбол', tags: ['350 мл'], glass: 'Хайбол', ingredients: ['Огурец - 100 гр', 'Яблоко - 100 гр', 'Лимон - 40 гр', 'Базилик - 5 гр', 'Мята - 3 гр', 'Сахарный сироп - 10 мл', 'Вода - 50 мл'] },
+            { id: 16, tab: 'drinks', category: 'smoothie', title: 'Цитрус-Имбирь', method: 'Закидываем все в блендер и переливаем в хайбол', tags: ['350 мл', 'Лед'], glass: 'Хайбол', ingredients: ['Апельсин - 120 гр', 'Грейпфрут - 120 гр', 'Лимон - 40 гр', 'Имбирь - 15 гр', 'Мед - 15 гр', 'Лед - 50 гр'] },
+            
+            // --- ЧАЙ / КОФЕ ---
+            { id: 17, tab: 'drinks', category: 'tea_coffee', title: 'Чай Смородина с базиликом', method: 'Закидываем все в чайник и кипятим', tags: ['700 мл'], glass: 'Чайник', ingredients: ['Пюре смородины - 120 гр', 'Базилик свежий - 10 гр', 'Пф сахарный сироп - 60 мл', 'Эрл грей - 5 гр'] },
+            { id: 18, tab: 'drinks', category: 'tea_coffee', title: 'Чай Облепиховый', method: 'Закидываем все в чайник и кипятим', tags: ['700 мл'], glass: 'Чайник', ingredients: ['Пюре облепиха - 120 гр', 'Пф сахарный сироп - 80 мл', 'Имбирь корень - 14 гр', 'Чай сенча - 5 гр', 'Лимон - 40 гр'] },
+            { id: 19, tab: 'drinks', category: 'tea_coffee', title: 'Чай с травами', method: 'Закидываем все в чайник, Отдельно в соусниках варенье из шишек, чернослив и курага.', tags: ['700 мл'], glass: 'Чайник', ingredients: ['Чабрец свежий - 6 гр', 'Розмарин - 6 гр', 'Душица сушеная - 10 гр', 'Мята - 14 гр', 'Мед - 50 гр', 'Эрл грей - 5 гр', 'Курага - 50 гр', 'Чернослив - 50 гр', 'Варенье из шишек - 50 гр'] },
+            { id: 20, tab: 'drinks', category: 'tea_coffee', title: 'Капучино', method: 'Готовим на 1/2 кофе', tags: ['250 мл'], glass: 'Кружка', ingredients: ['Кофе - 18 гр', 'Молоко - 200 мл'] },
+            { id: 21, tab: 'drinks', category: 'tea_coffee', title: 'Флэт Уайт', method: 'Готовим на целой порции', tags: ['200 мл'], glass: 'Кружка', ingredients: ['Кофе - 18 гр', 'Молоко - 200 мл'] },
+            { id: 22, tab: 'drinks', category: 'tea_coffee', title: 'Латте', method: 'Готовим на 1/2 кофе', tags: ['250 мл'], glass: 'Кружка', ingredients: ['Кофе - 18 гр', 'Молоко - 200 мл'] },
+            { id: 23, tab: 'drinks', category: 'tea_coffee', title: 'Раф кофе', method: 'Готовим на 1/2 кофе', tags: ['250 мл'], glass: 'Кружка', ingredients: ['Кофе - 18 гр', 'Молоко - 100 мл', 'Сливки 10% - 100 мл', 'Ванильный сахар - 1 гр'] },
+            { id: 24, tab: 'drinks', category: 'tea_coffee', title: 'Какао', method: 'Смешиваем в питчере и взбиваем стимером', tags: ['250 мл'], glass: 'Кружка', ingredients: ['Горячий шоколад - 80 мл', 'Молоко - 200 мл'] },
+            
+            // --- БЕЗАЛКОГОЛЬНЫЕ ---
+            { id: 25, tab: 'drinks', category: 'nonalk', title: 'Маргарита 0.0', method: 'Заливаем все в шейкер с кусковым льдом, подаем в креманку с каемкой из соли и долькой лайма', tags: ['90 мл', 'Лед'], glass: 'Креманка', ingredients: ['Дринксом текила - 40 мл', 'Дринксом апельсин - 20 мл', 'Сахарный сироп - 10 мл', 'Фреш лайма - 20 мл'] },
+            { id: 26, tab: 'drinks', category: 'nonalk', title: 'Апероль-Спритз 0.0', method: 'Заливаем все в бокал для красного вина с кусковым льдом и перемешиваем, украшаем слайсом апельсина', tags: ['220 мл', 'Лед'], glass: 'Бокал', ingredients: ['Дринксом апельсин - 100 мл', 'Вода с газом - 100 мл', 'Сахарный сироп - 10 мл'] },
+            { id: 27, tab: 'drinks', category: 'nonalk', title: 'Джин-Тоник 0.0', method: 'Наливаем все в рокс, смешиваем украшаем лимоном и огурцом', tags: ['Лед'], glass: 'Рокс', ingredients: ['Дринксом Джин - 40 мл', 'Тоник Гарденист - 1 шт', 'Огурец - 50 гр', 'Лимон - 25 гр'] },
+            { id: 28, tab: 'drinks', category: 'nonalk', title: 'Лимонад Арбуз-Мята', method: 'Наливаем все в хайбол и украшаем огурцом и мятой', tags: ['150 мл', 'Лед'], glass: 'Хайбол', ingredients: ['Пф Арбуз-Мята - 100 мл', 'Газированная вода - 50 мл'] },
+            { id: 29, tab: 'drinks', category: 'nonalk', title: 'Мятный Шейк', method: 'Мадлим мяту с молоком, фильтруем через сито и смешиваем все в блендере', tags: ['300 мл'], glass: 'Водник', ingredients: ['Молоко 3.2% - 150 гр', 'Мороженное - 150 гр', 'Мята - 5 гр'] },
+            
+            // ==========================================
+            // === ПФ ЗАГОТОВКИ (С КАЛЬКУЛЯТОРОМ) ===
+            // ==========================================
+            { 
+                id: 30, tab: 'pf', category: 'pf', title: 'Пф Микс кислот', method: 'Все смешиваем в мернике и переливаем в бутылку', tags: ['Заготовка'], 
+                baseYield: 500, unit: 'мл',
+                calcIngredients: [
+                    { name: 'Лимонная кислота', amount: 16, unit: 'гр' },
+                    { name: 'Винная кислота', amount: 8, unit: 'гр' },
+                    { name: 'Яблочная кислота', amount: 12, unit: 'гр' },
+                    { name: 'Вода', amount: 1000, unit: 'мл' }
+                ] 
+            },
+            { 
+                id: 31, tab: 'pf', category: 'pf', title: 'Пф Сахарный сироп', method: 'Все засыпаем в сотейник, варим до растворения сахара, переливаем в бутылку', tags: ['Заготовка'], 
+                baseYield: 1000, unit: 'мл',
+                calcIngredients: [
+                    { name: 'Сахар', amount: 900, unit: 'гр' },
+                    { name: 'Вода', amount: 700, unit: 'мл' }
+                ] 
+            },
+            { 
+                id: 32, tab: 'pf', category: 'pf', title: 'Пф Алоэ', method: 'Алоэ воду фильтруем через сито и переливаем в мерный стакан, добавляем все ингридиенты и смешиваем', tags: ['Заготовка'], 
+                baseYield: 650, unit: 'мл',
+                calcIngredients: [
+                    { name: 'Вода', amount: 250, unit: 'мл' },
+                    { name: 'Напиток Алоэ', amount: 250, unit: 'мл' },
+                    { name: 'Пф сахарный сироп', amount: 100, unit: 'мл' },
+                    { name: 'Пф Микс кислот', amount: 50, unit: 'мл' }
+                ] 
+            },
+            { 
+                id: 33, tab: 'pf', category: 'pf', title: 'Пф Клубника/цитрус', method: 'Все ингридиенты засыпаем в вакуумный пакет и сювидим на 55 градусах 4 часа', tags: ['Заготовка', 'Су-вид'], 
+                baseYield: 800, unit: 'мл',
+                calcIngredients: [
+                    { name: 'Клубника с/м', amount: 250, unit: 'гр' },
+                    { name: 'Luxardo Aperitivo', amount: 400, unit: 'мл' },
+                    { name: 'Сахар', amount: 150, unit: 'гр' },
+                    { name: 'Лимонный фреш', amount: 150, unit: 'мл' }
+                ] 
+            },
+            { 
+                id: 34, tab: 'pf', category: 'pf', title: 'Пф Мэри', method: 'Засыпаем все в блендер, перебиваем и заливаем в бутылку, апельсин фреш 100 мл', tags: ['Заготовка'], 
+                baseYield: 500, unit: 'мл',
+                calcIngredients: [
+                    { name: 'Томаты в с/с', amount: 300, unit: 'гр' },
+                    { name: 'Сок томатный', amount: 150, unit: 'мл' },
+                    { name: 'Вяленые томаты', amount: 30, unit: 'гр' },
+                    { name: 'Халапеньо', amount: 12, unit: 'гр' },
+                    { name: 'Табаско', amount: 5, unit: 'гр' },
+                    { name: 'Апельсины (150мл фреш)', amount: 250, unit: 'гр' },
+                    { name: 'Ворчестер', amount: 35, unit: 'гр' },
+                    { name: 'Паприка копченая', amount: 2, unit: 'гр' },
+                    { name: 'Пф сахарный сироп', amount: 10, unit: 'мл' },
+                    { name: 'Пф микс кислот', amount: 10, unit: 'мл' }
+                ] 
+            },
+            { 
+                id: 35, tab: 'pf', category: 'pf', title: 'Пф Бурбон/Курага', method: 'Засыпаем все в вакуумный пакет и сювидим 4 часа на 55 градусах', tags: ['Заготовка', 'Су-вид'], 
+                baseYield: 450, unit: 'мл',
+                calcIngredients: [
+                    { name: 'Бурбон Jim Beam', amount: 500, unit: 'мл' },
+                    { name: 'Курага', amount: 100, unit: 'гр' },
+                    { name: 'Пф кордиал мед', amount: 100, unit: 'мл' }
+                ] 
+            },
+            { 
+                id: 36, tab: 'pf', category: 'pf', title: 'Пф Грейпфрутовый кордиал', method: 'Цедра с сахаром засыпается на 20 минут, остальное смешивается отдельно, затем в сотейник и растворяем сахар при 60 град, фильтруем и отжимаем', tags: ['Заготовка'], 
+                baseYield: 650, unit: 'мл',
+                calcIngredients: [
+                    { name: 'Грейпфрут (300мл фреш)', amount: 800, unit: 'гр' },
+                    { name: 'Сахар', amount: 130, unit: 'гр' },
+                    { name: 'Пф лаймовый фреш', amount: 250, unit: 'мл' },
+                    { name: 'Вода', amount: 100, unit: 'мл' },
+                    { name: 'Цедра', amount: 18, unit: 'гр' },
+                    { name: 'Лимонная кислота', amount: 9, unit: 'гр' }
+                ] 
+            },
+            { 
+                id: 37, tab: 'pf', category: 'pf', title: 'Пф Беллини', method: 'Заливаем все в сотейник и варим, затем цедим в бутылку', tags: ['Заготовка'], 
+                baseYield: 1200, unit: 'мл',
+                calcIngredients: [
+                    { name: 'Пюре персик', amount: 500, unit: 'гр' },
+                    { name: 'Сок персиковый', amount: 250, unit: 'мл' },
+                    { name: 'Сахар', amount: 250, unit: 'гр' },
+                    { name: 'Вода', amount: 250, unit: 'мл' },
+                    { name: 'Пф лимонный фреш', amount: 300, unit: 'мл' }
+                ] 
+            },
+            { 
+                id: 38, tab: 'pf', category: 'pf', title: 'Пф Лимончелло', method: 'Снимаем цедру без альбедо, в вакуум с водкой на 5 часов 50 град. Добавляем лимон фреш и сироп.', tags: ['Заготовка', 'Су-вид'], 
+                baseYield: 800, unit: 'мл',
+                calcIngredients: [
+                    { name: 'Водка Organic', amount: 500, unit: 'мл' },
+                    { name: 'Лимоны (фреш 150мл)', amount: 400, unit: 'гр' },
+                    { name: 'Пф сахарный сироп', amount: 150, unit: 'мл' }
+                ] 
+            },
+            { 
+                id: 39, tab: 'pf', category: 'pf', title: 'Пф Малина/Персик', method: 'Смешиваем', tags: ['Заготовка'], 
+                baseYield: 630, unit: 'мл',
+                calcIngredients: [
+                    { name: 'Пюре малина', amount: 200, unit: 'гр' },
+                    { name: 'Пф беллини', amount: 300, unit: 'мл' },
+                    { name: 'Пф сахарный сироп', amount: 100, unit: 'мл' },
+                    { name: 'Микс кислот', amount: 100, unit: 'мл' }
+                ] 
+            },
+            { 
+                id: 40, tab: 'pf', category: 'pf', title: 'Пф Тропики', method: 'Смешиваем', tags: ['Заготовка'], 
+                baseYield: 700, unit: 'мл',
+                calcIngredients: [
+                    { name: 'Пюре манго', amount: 300, unit: 'гр' },
+                    { name: 'Пюре маракуйя', amount: 150, unit: 'гр' },
+                    { name: 'Пф сахарный сироп', amount: 100, unit: 'мл' },
+                    { name: 'Микс кислот', amount: 100, unit: 'мл' }
+                ] 
+            }
         ];
 
         // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
@@ -229,13 +391,9 @@
             document.getElementById('drink-filters').style.display = tab === 'drinks' ? 'flex' : 'none';
             document.getElementById('search').style.display = (tab === 'drinks' || tab === 'pf') ? 'block' : 'none';
 
-            if (tab === 'drinks' || tab === 'pf') {
-                renderCards();
-            } else if (tab === 'orders') {
-                checkAuthorAndLoadOrders();
-            } else if (tab === 'checklist') {
-                renderTasks();
-            }
+            if (tab === 'drinks' || tab === 'pf') { renderCards(); } 
+            else if (tab === 'orders') { checkAuthorAndLoadOrders(); } 
+            else if (tab === 'checklist') { renderTasks(); }
         }
 
         function setFilter(filter, el) {
@@ -246,8 +404,29 @@
         }
 
         function filterCards() { renderCards(); }
-
         function toggleCard(cardElement) { cardElement.classList.toggle('open'); }
+
+        // Калькулятор для ПФ
+        function recalculatePf(cardId, baseYield) {
+            const input = document.getElementById(`calc-input-${cardId}`);
+            let targetYield = parseFloat(input.value);
+            
+            if (isNaN(targetYield) || targetYield <= 0) {
+                targetYield = baseYield; // Защита от кривого ввода
+            }
+
+            const ratio = targetYield / baseYield;
+            
+            // Находим все спаны с ингредиентами в этой карточке
+            const ingredientSpans = document.querySelectorAll(`.ing-amount-${cardId}`);
+            ingredientSpans.forEach(span => {
+                const baseAmount = parseFloat(span.dataset.base);
+                let newAmount = baseAmount * ratio;
+                // Если число целое - оставляем как есть, если с плавающей точкой - округляем до 1 знака
+                newAmount = Number.isInteger(newAmount) ? newAmount : newAmount.toFixed(1);
+                span.innerText = newAmount;
+            });
+        }
 
         function renderCards() {
             const container = document.getElementById('cards-container');
@@ -258,7 +437,13 @@
             const filteredData = ttkData.filter(item => {
                 const matchesTab = item.tab === currentTab;
                 const matchesCategory = currentTab === 'drinks' ? (currentFilter === 'all' || item.category === currentFilter) : true;
-                const matchesSearch = item.title.toLowerCase().includes(searchText) || item.ingredients.join(' ').toLowerCase().includes(searchText);
+                
+                // Поиск по названию или ингредиентам (учитывая оба формата данных)
+                let searchString = item.title.toLowerCase();
+                if (item.ingredients) { searchString += ' ' + item.ingredients.join(' ').toLowerCase(); }
+                if (item.calcIngredients) { searchString += ' ' + item.calcIngredients.map(i => i.name).join(' ').toLowerCase(); }
+                
+                const matchesSearch = searchString.includes(searchText);
                 return matchesTab && matchesCategory && matchesSearch;
             });
 
@@ -268,16 +453,49 @@
             }
 
             filteredData.forEach(item => {
-                const tagsHtml = item.tags.map(t => `<span class="tag">${t}</span>`).join('');
-                const ingHtml = item.ingredients.map(i => `<li>${i}</li>`).join('');
+                let tagsHtml = item.tags.map(t => `<span class="tag">${t}</span>`).join('');
+                if (item.glass) tagsHtml += `<span class="tag glass">🍸 ${item.glass}</span>`;
+
+                let innerContent = '';
+
+                // ЕСЛИ ЭТО ПФ (Есть калькулятор)
+                if (item.calcIngredients) {
+                    const ingHtml = item.calcIngredients.map(ing => {
+                        return `<li>${ing.name} — <span class="ing-val ing-amount-${item.id}" data-base="${ing.amount}">${ing.amount}</span> ${ing.unit}</li>`;
+                    }).join('');
+
+                    innerContent = `
+                        <div class="pf-calculator" onclick="event.stopPropagation()">
+                            <div class="pf-calc-label">Нужно получить:</div>
+                            <input type="number" id="calc-input-${item.id}" class="pf-calc-input" value="${item.baseYield}" oninput="recalculatePf(${item.id}, ${item.baseYield})">
+                            <div class="pf-calc-unit">${item.unit}</div>
+                        </div>
+                        <div class="method"><strong>Метод:</strong> ${item.method}</div>
+                        <ul>${ingHtml}</ul>
+                    `;
+                } 
+                // ЕСЛИ ЭТО ОБЫЧНЫЙ НАПИТОК
+                else {
+                    const ingHtml = item.ingredients.map(i => `<li>${i}</li>`).join('');
+                    innerContent = `
+                        <div class="tags">${tagsHtml}</div>
+                        <div class="method"><strong>Метод:</strong> ${item.method}</div>
+                        <ul>${ingHtml}</ul>
+                    `;
+                }
+
                 const cardHtml = `
                     <div class="card" onclick="toggleCard(this)">
-                        <div class="card-header"><h3 class="card-title">${item.title}</h3><span class="chevron">▼</span></div>
-                        <div class="card-content"><div class="card-content-inner">
-                            <div class="tags">${tagsHtml}</div>
-                            <div class="method"><strong>Метод:</strong> ${item.method}</div>
-                            <ul>${ingHtml}</ul>
-                        </div></div>
+                        <div class="card-header">
+                            <h3 class="card-title">${item.title}</h3>
+                            <span class="chevron">▼</span>
+                        </div>
+                        <div class="card-content">
+                            <div class="card-content-inner">
+                                ${item.calcIngredients ? `<div class="tags">${tagsHtml}</div>` : ''}
+                                ${innerContent}
+                            </div>
+                        </div>
                     </div>
                 `;
                 container.insertAdjacentHTML('beforeend', cardHtml);
@@ -288,7 +506,6 @@
         // ЛОГИКА ЧЕК-ЛИСТА
         // ==========================================
         let tasks = JSON.parse(localStorage.getItem('tugai_tasks')) || [];
-
         function saveTasks() { localStorage.setItem('tugai_tasks', JSON.stringify(tasks)); }
 
         function renderTasks() {
@@ -305,18 +522,10 @@
                 list.appendChild(item);
             });
         }
-
         function addTask() {
             const input = document.getElementById('new-task');
-            const text = input.value.trim();
-            if (text) {
-                tasks.unshift({ text, done: false });
-                input.value = '';
-                saveTasks();
-                renderTasks();
-            }
+            if (input.value.trim()) { tasks.unshift({ text: input.value.trim(), done: false }); input.value = ''; saveTasks(); renderTasks(); }
         }
-
         function handleTaskEnter(event) { if (event.key === 'Enter') addTask(); }
         function toggleTask(index) { tasks[index].done = !tasks[index].done; saveTasks(); renderTasks(); }
         function deleteTask(index) { tasks.splice(index, 1); saveTasks(); renderTasks(); }
@@ -324,44 +533,25 @@
         // ==========================================
         // ЛОГИКА ЗАЯВОК И ПАРОЛЯ
         // ==========================================
-        function getAuthorName() { 
-            return localStorage.getItem('tugai_author_name'); 
-        }
+        function getAuthorName() { return localStorage.getItem('tugai_author_name'); }
 
         function checkAuthorAndLoadOrders() {
-            const name = getAuthorName();
-            if (!name) {
-                // Показываем окно ввода Имени и Пароля
+            if (!getAuthorName()) {
                 document.getElementById('auth-modal').style.display = 'flex';
             } else {
                 fetchOrders();
                 if (orderSyncInterval) clearInterval(orderSyncInterval);
-                orderSyncInterval = setInterval(() => {
-                    if (currentTab === 'orders') fetchOrders();
-                }, 5000); 
+                orderSyncInterval = setInterval(() => { if (currentTab === 'orders') fetchOrders(); }, 5000); 
             }
         }
 
         function saveAuthorName() {
             const nameInput = document.getElementById('author-name-input').value.trim();
             const passInput = document.getElementById('author-password-input').value.trim();
-
-            if (nameInput.length < 2) {
-                alert("Введите ваше имя (минимум 2 символа)");
-                return;
-            }
-            
-            // ПРОВЕРКА ПАРОЛЯ (Жестко задан как 12345678)
-            if (passInput !== "12345678") {
-                alert("Неверный пароль!");
-                return;
-            }
-
-            // Если пароль верный, сохраняем ИМЯ в память навсегда. 
-            // В следующий раз окно даже не появится.
+            if (nameInput.length < 2) { alert("Введите ваше имя"); return; }
+            if (passInput !== "12345678") { alert("Неверный пароль!"); return; }
             localStorage.setItem('tugai_author_name', nameInput);
             document.getElementById('auth-modal').style.display = 'none';
-            
             checkAuthorAndLoadOrders();
         }
 
@@ -372,91 +562,57 @@
                 const listEl = document.getElementById('active-orders-list');
                 
                 if (orders.length === 0) {
-                    listEl.innerHTML = '<p style="color:var(--text-sec); text-align:center; margin-top:20px;">Список заявок пуст. Добавь что-нибудь!</p>';
+                    listEl.innerHTML = '<p style="color:var(--text-sec); text-align:center; margin-top:20px;">Список заявок пуст.</p>';
                     return;
                 }
-
                 listEl.innerHTML = '';
                 orders.forEach(ord => {
                     const commentHtml = ord.comment ? `<span style="color:#FF9F0A;">💬 ${ord.comment}</span>` : '';
-                    
-                    // Убрали отображение имени из карточки
                     listEl.insertAdjacentHTML('beforeend', `
                         <div class="order-card">
                             <div class="order-info">
                                 <div class="order-title">${ord.item_name} <span style="color:var(--accent-pf); font-weight:bold;">— ${ord.quantity}</span></div>
-                                <div class="order-meta">
-                                    ${commentHtml}
-                                </div>
+                                <div class="order-meta">${commentHtml}</div>
                             </div>
                             <button class="cl-delete" onclick="removeOrder(${ord.id})">✕</button>
                         </div>
                     `);
                 });
-            } catch (error) {
-                console.error("Ошибка загрузки:", error);
-            }
+            } catch (error) { console.error(error); }
         }
 
         async function submitOrder() {
             const nameEl = document.getElementById('ord-name');
             const qtyEl = document.getElementById('ord-qty');
             const commEl = document.getElementById('ord-comment');
-
-            if (!nameEl.value.trim() || !qtyEl.value.trim()) {
-                alert("Название и количество обязательны!"); return;
-            }
-
-            const payload = {
-                item_name: nameEl.value.trim(),
-                quantity: qtyEl.value.trim(),
-                comment: commEl.value.trim(),
-                author_name: getAuthorName()
-            };
-
+            if (!nameEl.value.trim() || !qtyEl.value.trim()) { alert("Название и количество обязательны!"); return; }
+            
             const btn = document.querySelector('.btn-add-order');
             btn.innerText = "⏳..."; btn.disabled = true;
 
             try {
                 const res = await fetch(`${API_BASE_URL}/api/add_order`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ item_name: nameEl.value.trim(), quantity: qtyEl.value.trim(), comment: commEl.value.trim(), author_name: getAuthorName() })
                 });
-                
-                if (res.ok) {
-                    nameEl.value = ''; qtyEl.value = ''; commEl.value = '';
-                    fetchOrders();
-                } else { alert("Ошибка сервера при добавлении"); }
+                if (res.ok) { nameEl.value = ''; qtyEl.value = ''; commEl.value = ''; fetchOrders(); }
             } catch (e) { alert("Нет связи с сервером"); } 
             finally { btn.innerText = "Добавить в общий список"; btn.disabled = false; }
         }
 
         async function removeOrder(id) {
             if(!confirm("Удалить эту позицию?")) return;
-            try {
-                await fetch(`${API_BASE_URL}/api/delete_order/${id}`, { method: 'DELETE' });
-                fetchOrders();
-            } catch (e) { alert("Ошибка удаления"); }
+            try { await fetch(`${API_BASE_URL}/api/delete_order/${id}`, { method: 'DELETE' }); fetchOrders(); } catch (e) {}
         }
 
         async function sendOrdersNow() {
             if(!confirm("Отправить список закупщику в Телеграм прямо сейчас и очистить базу?")) return;
-            
             const btn = document.querySelector('.btn-send-now');
             btn.innerText = "⏳ Отправка..."; btn.disabled = true;
-
             try {
                 const res = await fetch(`${API_BASE_URL}/api/send_now`, { method: 'POST' });
-                if (res.ok) {
-                    alert("✅ Успешно отправлено в Telegram!");
-                    fetchOrders();
-                } else {
-                    const err = await res.json();
-                    alert("❌ Ошибка: " + (err.detail || "неизвестно"));
-                }
-            } catch (e) { alert("Ошибка связи с сервером"); } 
-            finally { btn.innerHTML = "🚀 Отправить закупщику прямо сейчас"; btn.disabled = false; }
+                if (res.ok) { alert("✅ Успешно отправлено в Telegram!"); fetchOrders(); }
+            } catch (e) {} finally { btn.innerHTML = "🚀 Отправить закупщику прямо сейчас"; btn.disabled = false; }
         }
 
         window.onload = () => { renderCards(); };
